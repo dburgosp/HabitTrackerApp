@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.example.android.habittrackerapp.data.HabitTrackerContract.HabitTrackerEntry;
@@ -14,10 +15,46 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
+    // Database helper that will provide us access to the database.
+    private HabitTrackerDbHelper dbHelper;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // To access our database, we instantiate our subclass of SQLiteOpenHelper and pass the
+        // context, which is the current activity.
+        dbHelper = new HabitTrackerDbHelper(this);
+
+        // Some examples inserting data...
+        HabitTracker habitTracker;
+        habitTracker = new HabitTracker("David", "2017-07-11", 450, 80000, 210, 3000, 100, 2000, 170);
+        if (insertHabit(habitTracker)) Log.i("MainActivity", "Insert 1 OK");
+        else Log.e("MainActivity", "Insert 1 ERROR");
+        habitTracker = new HabitTracker("David", "2017-07-12", 470, 79800, 220, 3100, 120, 2200, 175);
+        if (insertHabit(habitTracker)) Log.i("MainActivity", "Insert 2 OK");
+        else Log.e("MainActivity", "Insert 2 ERROR");
+        habitTracker = new HabitTracker("David", "2017-07-13", 420, 79000, 250, 3430, 140, 2350, 169);
+        if (insertHabit(habitTracker)) Log.i("MainActivity", "Insert 3 OK");
+        else Log.e("MainActivity", "Insert 3 ERROR");
+
+        // ... and retrieving all the data in the table.
+        Cursor cursor = databaseInfo();
+        ArrayList<HabitTracker> habitTrackerArrayList = parseDatabaseInfo(cursor);
+        int i = 1;
+        for (HabitTracker h : habitTrackerArrayList) {
+            Log.i("MainActivity", "Row " + i + ": " + HabitTrackerEntry.COLUMN_NAME_USERNAME + "=" + habitTracker.getUserName());
+            Log.i("MainActivity", "Row " + i + ": " + HabitTrackerEntry.COLUMN_NAME_DATE + "=" + habitTracker.getDate());
+            Log.i("MainActivity", "Row " + i + ": " + HabitTrackerEntry.COLUMN_NAME_SLEEPTIME + "=" + habitTracker.getSleepTime());
+            Log.i("MainActivity", "Row " + i + ": " + HabitTrackerEntry.COLUMN_NAME_WEIGHT + "=" + habitTracker.getWeight());
+            Log.i("MainActivity", "Row " + i + ": " + HabitTrackerEntry.COLUMN_NAME_WALKINGTIME + "=" + habitTracker.getWalkingTime());
+            Log.i("MainActivity", "Row " + i + ": " + HabitTrackerEntry.COLUMN_NAME_WALKINGDISTANCE + "=" + habitTracker.getWalkingDistance());
+            Log.i("MainActivity", "Row " + i + ": " + HabitTrackerEntry.COLUMN_NAME_RUNNINGTIME + "=" + habitTracker.getRunningTime());
+            Log.i("MainActivity", "Row " + i + ": " + HabitTrackerEntry.COLUMN_NAME_RUNNINGDISTANCE + "=" + habitTracker.getRunningDistance());
+            Log.i("MainActivity", "Row " + i + ": " + HabitTrackerEntry.COLUMN_NAME_AVERAGEHEARTBEATS + "=" + habitTracker.getAverageHeartBeats());
+            i++;
+        }
     }
 
     /**
@@ -29,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
     private boolean insertHabit(HabitTracker habitTracker) {
         // To access our database, we instantiate our subclass of SQLiteOpenHelper and pass the
         // context, which is the current activity, and then get the data repository in write mode.
-        HabitTrackerDbHelper dbHelper = new HabitTrackerDbHelper(this);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
 
         // Create a new map of values, where column names are the keys.
@@ -58,23 +94,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Retrieves all the elements in the "habit_tracker" table of the database.
-     * 
+     * Given a cursor with all the elements in the "habit_tracker" table of the database, extracts
+     * then into an array of HabitTracker objects, one object per row.
+     *
+     * @param cursor is the Cursor object with the result set of a previous query.
      * @return an array of HabitTracker objects, with the information retrieved from the database.
      */
-    private ArrayList<HabitTracker> databaseInfo() {
-        // To access our database, we instantiate our subclass of SQLiteOpenHelper and pass the
-        // context, which is the current activity, and create and/or open a database to read from
-        // it.
-        HabitTrackerDbHelper dbHelper = new HabitTrackerDbHelper(this);
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
-
+    private ArrayList<HabitTracker> parseDatabaseInfo(Cursor cursor) {
         // Create the new array for returning data.
-        ArrayList<HabitTracker> habitTrackerArrayList = new ArrayList<HabitTracker>();
-
-        // Perform this raw SQL query "SELECT * FROM habit_tracker" to get a Cursor that contains
-        // all rows from the "habit_tracker" table.
-        Cursor cursor = db.query(HabitTrackerEntry.TABLE_NAME, null, null, null, null, null, null);
+        ArrayList<HabitTracker> habitTrackerArrayList = new ArrayList<>();
 
         // Figure out the index of each column.
         int usernameColumnIndex = cursor.getColumnIndex(HabitTrackerEntry.COLUMN_NAME_USERNAME);
@@ -109,5 +137,21 @@ public class MainActivity extends AppCompatActivity {
             cursor.close();
             return habitTrackerArrayList;
         }
+    }
+
+    /**
+     * Retrieves all the elements in the "habit_tracker" table of the database.
+     *
+     * @return a Cursor object with the information retrieved from the database.
+     */
+    private Cursor databaseInfo() {
+        // To access our database, we instantiate our subclass of SQLiteOpenHelper and pass the
+        // context, which is the current activity, and create and/or open a database to read from
+        // it.
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+
+        // Perform this raw SQL query "SELECT * FROM habit_tracker" to get a Cursor that contains
+        // all rows from the "habit_tracker" table.
+        return db.query(HabitTrackerEntry.TABLE_NAME, null, null, null, null, null, null);
     }
 }
